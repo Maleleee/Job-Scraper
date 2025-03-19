@@ -1,4 +1,4 @@
-# PH Job Scraper
+# PH Job Scraper (WORK IN PROGRESS)
 
 A Flask web application that aggregates job listings from Philippine job websites:
 - HireMe.ph (Local Jobs)
