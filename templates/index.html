@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PH Job Scraper</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <style>
+        .job-card {
+            transition: transform 0.2s;
+            margin-bottom: 1rem;
+        }
+        .job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .source-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        .error-message {
+            display: none;
+            color: #dc3545;
+            text-align: center;
+            padding: 1rem;
+        }
+        .search-form {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">PH Job Scraper</a>
+            <button class="btn btn-light" onclick="refreshJobs()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="search-form">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-5">
+                    <label for="keyword" class="form-label">Job Keyword</label>
+                    <input type="text" class="form-control" id="keyword" placeholder="e.g., Programmer, Nurse">
+                </div>
+                <div class="col-md-5">
+                    <label for="specialization" class="form-label">Specialization</label>
+                    <select class="form-select" id="specialization">
+                        <option value="">All Specializations</option>
+                        <option value="IT / Computer">IT / Computer</option>
+                        <option value="Medical / Nurse">Medical / Nurse</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Sales / Marketing">Sales / Marketing</option>
+                        <option value="Education">Education</option>
+                        <option value="Construction">Construction</option>
+                        <option value="Manufacturing">Manufacturing</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="locationType" class="form-label">Location Type</label>
+                    <select class="form-select" id="locationType">
+                        <option value="">All Locations</option>
+                        <option value="local">Local (Philippines)</option>
+                        <option value="overseas">Overseas</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="location" class="form-label">Location</label>
+                    <input type="text" class="form-control" id="location" placeholder="e.g., Manila, Dubai, Singapore">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Fetching latest job listings...</p>
+        </div>
+
+        <div class="error-message"></div>
+
+        <div class="row" id="jobListings">
+            <!-- Job cards will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        function createJobCard(job) {
+            return `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card job-card">
+                        <div class="card-body">
+                            <span class="badge bg-secondary source-badge">${job.source}</span>
+                            <h5 class="card-title">${job.title}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">${job.company}</h6>
+                            <p class="card-text">
+                                <i class="bi bi-geo-alt"></i> ${job.location}<br>
+                                <i class="bi bi-calendar"></i> Posted: ${job.date_posted}
+                                ${job.experience ? `<br><i class="bi bi-briefcase"></i> ${job.experience}` : ''}
+                                ${job.vacancies ? `<br><i class="bi bi-people"></i> ${job.vacancies}` : ''}
+                                ${job.salary ? `<br><i class="bi bi-cash"></i> ${job.salary}` : ''}
+                            </p>
+                            <a href="${job.url}" target="_blank" class="btn btn-primary">
+                                View Job
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showLoading() {
+            document.querySelector('.loading').style.display = 'block';
+            document.querySelector('.error-message').style.display = 'none';
+            document.getElementById('jobListings').innerHTML = '';
+        }
+
+        function showError(message) {
+            document.querySelector('.loading').style.display = 'none';
+            document.querySelector('.error-message').style.display = 'block';
+            document.querySelector('.error-message').textContent = message;
+        }
+
+        function displayJobs(jobs) {
+            document.querySelector('.loading').style.display = 'none';
+            document.querySelector('.error-message').style.display = 'none';
+            document.getElementById('jobListings').innerHTML = jobs.map(createJobCard).join('');
+        }
+
+        async function fetchJobs() {
+            showLoading();
+            try {
+                const keyword = document.getElementById('keyword').value;
+                const specialization = document.getElementById('specialization').value;
+                const locationType = document.getElementById('locationType').value;
+                const location = document.getElementById('location').value;
+                
+                const params = new URLSearchParams();
+                if (keyword) params.append('keyword', keyword);
+                if (specialization) params.append('specialization', specialization);
+                if (locationType) params.append('locationType', locationType);
+                if (location) params.append('location', location);
+                
+                const response = await fetch(`/api/jobs?${params.toString()}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayJobs(data.jobs);
+                } else {
+                    showError(data.message || 'Failed to fetch jobs');
+                }
+            } catch (error) {
+                showError('An error occurred while fetching jobs');
+            }
+        }
+
+        function refreshJobs() {
+            fetchJobs();
+        }
+
+        // Handle form submission
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            fetchJobs();
+        });
+
+        // Initial load
+        fetchJobs();
+    </script>
+</body>
+</html> 
