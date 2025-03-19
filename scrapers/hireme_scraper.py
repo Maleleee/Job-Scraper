@@ -35,7 +35,8 @@ def scrape_hireme(keyword=None, location=None, max_pages=3):
             # Find all job listings - try different possible selectors
             job_listings = soup.find_all('article', class_='job-listing') or \
                           soup.find_all('div', class_='job-listing') or \
-                          soup.find_all('div', class_='job-item')
+                          soup.find_all('div', class_='job-item') or \
+                          soup.find_all('div', class_='post')
             
             logger.info(f"Found {len(job_listings)} job listings on HireMe.ph page {page}")
             
@@ -48,13 +49,16 @@ def scrape_hireme(keyword=None, location=None, max_pages=3):
                     # Try different possible selectors for each element
                     title_elem = job.find('h2', class_='entry-title') or \
                                job.find('h2', class_='job-title') or \
-                               job.find('h3', class_='job-title')
+                               job.find('h3', class_='job-title') or \
+                               job.find('h2')
                     
                     company_elem = job.find('div', class_='company') or \
-                                 job.find('div', class_='company-name')
+                                 job.find('div', class_='company-name') or \
+                                 job.find('div', class_='employer')
                     
                     location_elem = job.find('div', class_='location') or \
-                                  job.find('div', class_='job-location')
+                                  job.find('div', class_='job-location') or \
+                                  job.find('div', class_='address')
                     
                     link_elem = job.find('a', class_='job-link') or \
                               job.find('a', class_='job-title-link') or \
@@ -62,9 +66,11 @@ def scrape_hireme(keyword=None, location=None, max_pages=3):
                     
                     # Extract additional details if available
                     salary_elem = job.find('div', class_='salary') or \
-                                job.find('div', class_='job-salary')
+                                job.find('div', class_='job-salary') or \
+                                job.find('div', class_='compensation')
                     date_elem = job.find('div', class_='date') or \
-                              job.find('div', class_='job-date')
+                              job.find('div', class_='job-date') or \
+                              job.find('div', class_='posted-date')
                     
                     if not all([title_elem, company_elem, location_elem, link_elem]):
                         logger.warning("Missing required elements in HireMe.ph job listing")

@@ -24,29 +24,42 @@ class BaseScraper:
         }
 
     def get_page(self, url):
+        """
+        Fetch a webpage with proper headers and error handling
+        
+        Args:
+            url (str): URL to fetch
+            
+        Returns:
+            str: HTML content or None if failed
+        """
         try:
             # Add a random delay between 1-3 seconds
             delay = random.uniform(1, 3)
             logger.info(f"Waiting {delay:.1f} seconds before fetching {url}")
             time.sleep(delay)
             
-            logger.info(f"Fetching URL: {url}")
+            # Log the headers being used
+            logger.info(f"Using headers: {self.headers}")
+            
             response = requests.get(url, headers=self.headers, timeout=10)
-            response.raise_for_status()
-            
-            # Log response status and headers
             logger.info(f"Response status code: {response.status_code}")
-            logger.debug(f"Response headers: {dict(response.headers)}")
+            logger.info(f"Response headers: {dict(response.headers)}")
             
-            # Check if we got a valid HTML response
-            content_type = response.headers.get('Content-Type', '')
-            logger.info(f"Content-Type: {content_type}")
+            # Log the content type
+            content_type = response.headers.get('content-type', '')
+            logger.info(f"Content type: {content_type}")
             
-            if 'text/html' not in content_type:
-                logger.warning(f"Received non-HTML response from {url}")
+            # Check if we got HTML content
+            if 'text/html' not in content_type.lower():
+                logger.warning(f"Received non-HTML content: {content_type}")
                 return None
-                
+            
+            # Log the first 500 characters of the response
+            logger.info(f"Response preview: {response.text[:500]}")
+            
             return response.text
+            
         except requests.RequestException as e:
             logger.error(f"Error fetching {url}: {str(e)}")
             return None
